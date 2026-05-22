@@ -1,0 +1,12 @@
+php-8.3.31.tar.gz
+asterisk-22.9.0.tar.gz
+ioncube_loaders_lin_x86-64.tar.gz
+asterisk-core-sounds-ru-wav-current.tar.gz
+node-v18.20.8-linux-x64.tar.xz
+pm2-global-5.2.2-node18-linux-x64.tar.gz
+sysadmin17_8.2-8.2_sng12_all.deb
+sysadmin-lib.tar.gz
+freepbx-sysadmin-module-dir.tar.gz
+freepbx-firewall-module-dir.tar.gz
+bcg729/
+asterisk-g72x/
