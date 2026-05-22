@@ -1265,6 +1265,61 @@ print_final_credentials() {
   echo "======================================================================"
 }
 
+install_pm2_asterisk_systemd() {
+  log "Установка systemd unit для PM2 пользователя ${AST_USER}"
+
+  cat > /etc/systemd/system/pm2-asterisk.service <<'EOF'
+[Unit]
+Description=PM2 resurrect service for asterisk
+After=network.target mariadb.service asterisk.service
+Wants=network.target mariadb.service asterisk.service
+
+[Service]
+Type=oneshot
+User=asterisk
+Group=asterisk
+Environment=HOME=/var/lib/asterisk
+Environment=PM2_HOME=/var/lib/asterisk/.pm2
+ExecStart=/usr/bin/pm2 resurrect
+ExecReload=/usr/bin/pm2 reload all
+ExecStop=/usr/bin/pm2 kill
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  systemctl daemon-reload
+  systemctl enable pm2-asterisk >/dev/null 2>&1 || true
+}
+
+fix_freepbx_ucp_pm2() {
+  log "Фикс автозапуска UCP через PM2"
+
+  mkdir -p /var/lib/asterisk/.pm2
+  chown -R "${AST_USER}:${AST_GROUP}" /var/lib/asterisk/.pm2
+
+  sudo -u "${AST_USER}" env HOME=/var/lib/asterisk PM2_HOME=/var/lib/asterisk/.pm2 pm2 kill >/dev/null 2>&1 || true
+
+  if [[ -d /var/www/html/admin/modules/ucp/node ]]; then
+    sudo -u "${AST_USER}" env HOME=/var/lib/asterisk PM2_HOME=/var/lib/asterisk/.pm2 \
+      pm2 describe ucp >/dev/null 2>&1 || \
+    sudo -u "${AST_USER}" env HOME=/var/lib/asterisk PM2_HOME=/var/lib/asterisk/.pm2 \
+      pm2 start /var/www/html/admin/modules/ucp/node/index.js --name ucp
+
+    sudo -u "${AST_USER}" env HOME=/var/lib/asterisk PM2_HOME=/var/lib/asterisk/.pm2 \
+      pm2 save
+  else
+    warn "Каталог UCP node не найден: /var/www/html/admin/modules/ucp/node"
+  fi
+
+  systemctl reset-failed pm2-asterisk >/dev/null 2>&1 || true
+  systemctl restart pm2-asterisk || true
+
+  fwconsole reload || fwconsole reload --dont-reload-asterisk || true
+  fwconsole chown || true
+}
+
 require_root
 require_ubuntu_26
 create_db_pass
@@ -1739,6 +1794,7 @@ fwconsole ma upgradeall || true
 fix_freepbx_framework_signed
 
 setup_pm2
+install_pm2_asterisk_systemd
 setup_incron
 ensure_php_shebang_compat
 fix_firewall_oobe_state
@@ -1760,6 +1816,7 @@ fi
 
 fix_firewall_oobe_state
 smoketest_sysadmin_firewall_hook
+fix_freepbx_ucp_pm2
 
 ensure_asterisk_running
 fwconsole reload || fwconsole reload --dont-reload-asterisk || true
