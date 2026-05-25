@@ -323,7 +323,7 @@ AST_MODULE_MODE=preset  install-ubuntu26-freepbx17.sh
 
 Список модулей из файла
 
-AST_MODULE_MODE=file AST_MODULE_FILE=/root/prod-modules.txt  install-ubuntu26-freepbx17.sh
+AST_MODULE_MODE=file AST_MODULE_FILE=/root/prod-modules.txt ALLOW_ONLINE_SYSADMIN_FIREWALL=no /root/install-ubuntu26-freepbx17.sh
 
 
 
